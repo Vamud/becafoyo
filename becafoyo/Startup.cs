@@ -1,3 +1,6 @@
+using becafoyo.Services;
+using becafoyo.Services.Interfaces;
+
 namespace becafoyo
 {
     public class Startup
@@ -29,12 +32,26 @@ namespace becafoyo
         /// </remarks>
         public void ConfigureServices(IServiceCollection services)
         {
+            services.AddControllers();
+
+            services.AddCors(options =>
+            {
+                options.AddPolicy("AllowDashboardOrigin",
+                             builder => builder
+                             .SetIsOriginAllowed((host) => true)
+                             .AllowAnyOrigin()
+                             .AllowAnyMethod()
+                             .AllowAnyHeader());
+            });
+
             services.AddUmbraco(_env, _config)
                 .AddBackOffice()
                 .AddWebsite()
                 .AddDeliveryApi()
                 .AddComposers()
                 .Build();
+
+            services.AddTransient<IUmbracoContentService, UmbracoContentService>();
         }
 
         /// <summary>
@@ -49,6 +66,8 @@ namespace becafoyo
                 app.UseDeveloperExceptionPage();
             }
 
+            app.UseCors("AllowDashboardOrigin");
+
             app.UseUmbraco()
                 .WithMiddleware(u =>
                 {
@@ -61,6 +80,13 @@ namespace becafoyo
                     u.UseBackOfficeEndpoints();
                     u.UseWebsiteEndpoints();
                 });
+
+            app.UseHttpsRedirection();
+
+            app.UseEndpoints(endpoints =>
+            {
+                endpoints.MapControllers();
+            });
         }
     }
 }
